@@ -15,9 +15,13 @@
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   background: var(--bg);
@@ -27,7 +31,25 @@ body {
   line-height: 1.6;
 }
 
-/* ---------- Cards ---------- */
+/* Prevent zoom on input focus (iOS) */
+input, select, textarea {
+  font-size: 16px;
+}
+
+@media (min-width: 640px) {
+  input, select, textarea {
+    font-size: 14px;
+  }
+}
+
+/* Safe area for iPhone notch */
+@supports (padding: max(0px)) {
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Cards */
 .card {
   background: #FFFFFF;
   border: 1px solid var(--border);
@@ -40,7 +62,7 @@ body {
   box-shadow: 0 12px 32px -12px rgba(10,10,10,0.08);
 }
 
-/* ---------- Buttons ---------- */
+/* Buttons */
 .btn-primary {
   background: var(--text);
   color: #fff;
@@ -69,12 +91,7 @@ body {
   align-items: center;
   gap: 0.5rem;
 }
-.btn-secondary:hover {
-  border-color: var(--text);
-  background: #FAFAF9;
-}
 
-/* ---------- Labels ---------- */
 .eyebrow {
   font-size: 0.75rem;
   font-weight: 700;
@@ -83,13 +100,12 @@ body {
   color: var(--gold);
 }
 
-/* ---------- Divider ---------- */
 .rule {
   height: 1px;
   background: var(--border);
 }
 
-/* ---------- Animations ---------- */
+/* Animations */
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -103,19 +119,35 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- Section spacing helper ---------- */
 .section {
-  padding-top: 7rem;
-  padding-bottom: 7rem;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 
-/* ---------- Scroll progress ---------- */
+@media (min-width: 768px) {
+  .section {
+    padding-top: 7rem;
+    padding-bottom: 7rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
 .scroll-progress {
   position: fixed;
   top: 0; left: 0;
   height: 2px;
   background: var(--text);
   z-index: 100;
+}
+
+/* Hide scrollbar for horizontal scrolls */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
