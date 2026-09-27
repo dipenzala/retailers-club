@@ -13,7 +13,6 @@
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
     "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.117.2",
     "clsx": "^2.1.1",
     "framer-motion": "^13.4.4",
     "lucide-react": "^1.48.0",
@@ -29,11 +28,13 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "@types/node": "^20.19.43",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.0.0",
+    "dotenv": "^18.0.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "postcss": "^8.4.49",
