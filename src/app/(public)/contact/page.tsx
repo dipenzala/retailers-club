@@ -1,3 +1,4 @@
+"use client";
 import PageHero from "@/components/public/PageHero";
 import { Mail, Phone, MapPin, MessageCircle } from "lucide-react";
 
@@ -8,7 +9,6 @@ export default function Contact() {
 
       <section className="py-16 px-5">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Contact Info */}
           <div className="space-y-4">
             <h2 className="text-[1.5rem] font-extrabold mb-6">Reach Us</h2>
             {[
@@ -40,7 +40,6 @@ export default function Contact() {
             </div>
           </div>
 
-          {/* Contact Form */}
           <div className="bg-white border rounded-2xl p-6">
             <h2 className="text-[1.5rem] font-extrabold mb-6">Send Message</h2>
             <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>

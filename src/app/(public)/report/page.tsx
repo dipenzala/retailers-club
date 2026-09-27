@@ -1,5 +1,6 @@
+"use client";
 import PageHero from "@/components/public/PageHero";
-import { AlertTriangle, ShieldAlert, Ban, MessageSquare } from "lucide-react";
+import { AlertTriangle, ShieldAlert, Ban } from "lucide-react";
 
 export default function Report() {
   return (
