@@ -5,29 +5,72 @@ export async function GET(req: Request) {
   const supabase = await createClient();
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";
-  const category = searchParams.get("category") || "";
+  const sort = searchParams.get("sort") || "Relevance";
+  const priceMin = searchParams.get("priceMin");
+  const priceMax = searchParams.get("priceMax");
+  const verifiedOnly = searchParams.get("verifiedOnly") === "true";
+  const readyStock = searchParams.get("readyStock") === "true";
+  const customizable = searchParams.get("customizable") === "true";
+  const sampleAvailable = searchParams.get("sampleAvailable") === "true";
+  const state = searchParams.get("state") || "";
   const city = searchParams.get("city") || "";
-  const priceMax = Number(searchParams.get("price_max") || 0);
-  const minPrice = Number(searchParams.get("min_price") || 0);
 
-  let query = supabase.from("products").select("*").limit(40);
+  const genders = (searchParams.get("gender") || "").split(",").filter(Boolean);
+  const fabrics = (searchParams.get("fabric") || "").split(",").filter(Boolean);
+  const colors = (searchParams.get("color") || "").split(",").filter(Boolean);
+  const occasions = (searchParams.get("occasion") || "").split(",").filter(Boolean);
+  const sizes = (searchParams.get("size") || "").split(",").filter(Boolean);
+  const patterns = (searchParams.get("pattern") || "").split(",").filter(Boolean);
+  const sleeves = (searchParams.get("sleeve") || "").split(",").filter(Boolean);
+  const fits = (searchParams.get("fit") || "").split(",").filter(Boolean);
 
-  if (q) query = query.ilike("title", `%${q}%`);
-  if (category) query = query.eq("category", category);
-  if (priceMax > 0) query = query.lte("price", priceMax);
-  if (minPrice > 0) query = query.gte("price", minPrice);
+  let query = supabase.from("products").select("*").limit(80);
 
-  const { data, error } = await query.order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`);
+  if (priceMin) query = query.gte("price", Number(priceMin));
+  if (priceMax) query = query.lte("price", Number(priceMax));
+  if (readyStock) query = query.eq("ready_stock", true);
+  if (customizable) query = query.eq("customizable", true);
+  if (sampleAvailable) query = query.eq("sample_available", true);
+  if (genders.length) query = query.in("gender", genders);
+  if (fabrics.length) query = query.in("fabric", fabrics);
+  if (colors.length) query = query.in("color", colors);
+  if (occasions.length) query = query.in("occasion", occasions);
+  if (patterns.length) query = query.in("pattern", patterns);
+  if (sleeves.length) query = query.in("sleeve_type", sleeves);
+  if (fits.length) query = query.in("fit", fits);
 
-  // If city filter, filter by manufacturer city
-  if (city && data) {
-    const ids = [...new Set(data.map((p) => p.manufacturer_id))];
-    const { data: profiles } = await supabase
-      .from("profiles").select("id, city").in("id", ids);
-    const cityIds = new Set(profiles?.filter((p) => p.city?.toLowerCase() === city.toLowerCase()).map((p) => p.id));
-    return NextResponse.json({ results: data.filter((p) => cityIds.has(p.manufacturer_id)) });
+  if (sort === "Newest") query = query.order("created_at", { ascending: false });
+  else if (sort === "Price: Low to High") query = query.order("price", { ascending: true });
+  else if (sort === "Price: High to Low") query = query.order("price", { ascending: false });
+  else if (sort === "Popular") query = query.order("view_count", { ascending: false });
+  else query = query.order("created_at", { ascending: false });
+
+  const { data, error } = await query;
+  if (error) return NextResponse.json({ error: error.message, results: [] });
+
+  let filtered = data || [];
+
+  // Filter by state/city via profile
+  if ((state || city) && filtered.length > 0) {
+    const ids = [...new Set(filtered.map((p) => p.manufacturer_id))];
+    const { data: profiles } = await supabase.from("profiles").select("id, city, state, is_verified").in("id", ids);
+    const map = new Map(profiles?.map((p) => [p.id, p]) || []);
+    filtered = filtered.filter((p) => {
+      const prof = map.get(p.manufacturer_id);
+      if (!prof) return false;
+      if (state && prof.state !== state) return false;
+      if (city && !prof.city?.toLowerCase().includes(city.toLowerCase())) return false;
+      return true;
+    });
   }
 
-  return NextResponse.json({ results: data || [] });
+  if (verifiedOnly && filtered.length > 0) {
+    const ids = [...new Set(filtered.map((p) => p.manufacturer_id))];
+    const { data: profiles } = await supabase.from("profiles").select("id, is_verified").in("id", ids);
+    const verified = new Set(profiles?.filter((p) => p.is_verified).map((p) => p.id));
+    filtered = filtered.filter((p) => verified.has(p.manufacturer_id));
+  }
+
+  return NextResponse.json({ results: filtered });
 }
