@@ -20,7 +20,7 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return setError(error.message);
-    router.push(params.get("next") || "/dashboard");
+    router.push(params.get("next") || "/feed");
     router.refresh();
   };
 

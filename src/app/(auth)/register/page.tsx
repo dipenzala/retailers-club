@@ -46,7 +46,7 @@ export default function Register() {
     }
 
     setLoading(false);
-    router.push("/dashboard");
+    router.push("/feed");
     router.refresh();
   };
 

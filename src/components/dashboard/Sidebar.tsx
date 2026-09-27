@@ -4,18 +4,17 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import {
   LayoutDashboard, Package, MessageSquare, FileText, Search,
-  ShieldCheck, Settings, LogOut, Users, BarChart3, Rocket, Sparkles
+  ShieldCheck, Settings, LogOut, Users, BarChart3, Rocket, Sparkles, Home
 } from "lucide-react";
 
 const nav = [
+  { href: "/feed", label: "Feed", icon: Home },
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/products", label: "Products", icon: Package },
-  { href: "/products/upload", label: "AI Upload", icon: Sparkles },
-  { href: "/search", label: "Discover", icon: Search },
+  { href: "/products", label: "My Products", icon: Package },
+  { href: "/products/new", label: "Post Product", icon: Sparkles },
   { href: "/rfq", label: "RFQs", icon: FileText },
-  { href: "/chat", label: "Messages", icon: MessageSquare, badge: 3 },
+  { href: "/chat", label: "Messages", icon: MessageSquare },
   { href: "/verification", label: "Verification", icon: ShieldCheck },
-  { href: "/boost", label: "Boost", icon: Rocket },
 ];
 
 const adminNav = [
@@ -48,18 +47,11 @@ export default function Sidebar() {
               href={item.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-1 transition",
-                active
-                  ? "bg-[#0A0A0A] text-white"
-                  : "text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]"
+                active ? "bg-[#0A0A0A] text-white" : "text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]"
               )}
             >
               <item.icon size={16} strokeWidth={2} />
               <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <span className="text-[10px] font-bold bg-[#B8894A] text-white px-1.5 py-0.5 rounded-full">
-                  {item.badge}
-                </span>
-              )}
             </Link>
           );
         })}
@@ -71,7 +63,10 @@ export default function Sidebar() {
           <Link
             key={item.href}
             href={item.href}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-1 text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A] transition"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-1 transition",
+              path === item.href ? "bg-[#0A0A0A] text-white" : "text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]"
+            )}
           >
             <item.icon size={16} strokeWidth={2} />
             {item.label}
@@ -80,19 +75,11 @@ export default function Sidebar() {
       </nav>
 
       <div className="p-3 border-t border-[#E7E5E4]">
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A] transition"
-        >
-          <Settings size={16} strokeWidth={2} />
-          Settings
+        <Link href="/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B6B6B] hover:bg-[#FAFAF9]">
+          <Settings size={16} /> Settings
         </Link>
-        <Link
-          href="/login"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A] transition"
-        >
-          <LogOut size={16} strokeWidth={2} />
-          Logout
+        <Link href="/login" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B6B6B] hover:bg-[#FAFAF9]">
+          <LogOut size={16} /> Logout
         </Link>
       </div>
     </aside>
