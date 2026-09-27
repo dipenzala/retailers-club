@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function PublicFooter() {
   return (
-    <footer className="border-t border-[#E7E5E4] py-12 px-5 bg-white mt-20">
+    <footer className="border-t border-[#E7E5E4] py-12 px-5 bg-white/70 backdrop-blur mt-20 relative">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2">
@@ -22,8 +22,8 @@ export default function PublicFooter() {
                 { l: "L", n: "LinkedIn", url: "https://linkedin.com" },
                 { l: "Y", n: "YouTube", url: "https://youtube.com" },
               ].map((s) => (
-                <a key={s.n} href={s.url} target="_blank" rel="noopener"
-                  className="w-8 h-8 rounded-lg bg-[#FAFAF9] border border-[#E7E5E4] flex items-center justify-center text-[11px] font-bold hover:bg-[#0A0A0A] hover:text-white transition">
+                <a key={s.n} href={s.url} target="_blank" rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-lg bg-[#FAFAF9] border flex items-center justify-center text-[11px] font-bold hover:bg-[#0A0A0A] hover:text-white transition">
                   {s.l}
                 </a>
               ))}
@@ -31,17 +31,17 @@ export default function PublicFooter() {
           </div>
 
           <div>
-            <div className="text-[12px] font-bold mb-4 uppercase tracking-wider text-[#0A0A0A]">Categories</div>
+            <div className="text-[12px] font-bold mb-4 uppercase tracking-wider">Categories</div>
             <ul className="space-y-2.5 text-[13px] text-[#6B6B6B]">
-              <li><Link href="/search?category=womens-wear" className="hover:text-[#0A0A0A]">Women's Wear</Link></li>
-              <li><Link href="/search?category=mens-wear" className="hover:text-[#0A0A0A]">Men's Wear</Link></li>
-              <li><Link href="/search?category=kids-wear" className="hover:text-[#0A0A0A]">Kids Wear</Link></li>
-              <li><Link href="/search?category=ethnic-wear" className="hover:text-[#0A0A0A]">Ethnic Wear</Link></li>
+              <li><Link href="/search?category=Women%27s%20Wear" className="hover:text-[#0A0A0A]">Women's Wear</Link></li>
+              <li><Link href="/search?category=Men%27s%20Wear" className="hover:text-[#0A0A0A]">Men's Wear</Link></li>
+              <li><Link href="/search?category=Kids%20Wear" className="hover:text-[#0A0A0A]">Kids Wear</Link></li>
+              <li><Link href="/search?category=Ethnic%20Wear" className="hover:text-[#0A0A0A]">Ethnic Wear</Link></li>
             </ul>
           </div>
 
           <div>
-            <div className="text-[12px] font-bold mb-4 uppercase tracking-wider text-[#0A0A0A]">Company</div>
+            <div className="text-[12px] font-bold mb-4 uppercase tracking-wider">Company</div>
             <ul className="space-y-2.5 text-[13px] text-[#6B6B6B]">
               <li><Link href="/about" className="hover:text-[#0A0A0A]">About Us</Link></li>
               <li><Link href="/careers" className="hover:text-[#0A0A0A]">Careers</Link></li>
@@ -51,7 +51,7 @@ export default function PublicFooter() {
           </div>
 
           <div>
-            <div className="text-[12px] font-bold mb-4 uppercase tracking-wider text-[#0A0A0A]">Support</div>
+            <div className="text-[12px] font-bold mb-4 uppercase tracking-wider">Support</div>
             <ul className="space-y-2.5 text-[13px] text-[#6B6B6B]">
               <li><Link href="/help" className="hover:text-[#0A0A0A]">Help Center</Link></li>
               <li><Link href="/contact" className="hover:text-[#0A0A0A]">Contact</Link></li>

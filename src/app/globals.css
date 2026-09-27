@@ -151,3 +151,26 @@ input, select, textarea {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ---- Landing background blobs (GPU-friendly) ---- */
+@keyframes blobFloat1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(80px, 60px, 0) scale(1.15); }
+}
+@keyframes blobFloat2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.1); }
+  50%      { transform: translate3d(-70px, 90px, 0) scale(0.95); }
+}
+@keyframes blobFloat3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(0.9); }
+  50%      { transform: translate3d(90px, -60px, 0) scale(1.1); }
+}
+@keyframes blobFloat4 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-60px, -80px, 0) scale(1.12); }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

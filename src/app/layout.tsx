@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { I18nProvider } from "@/lib/i18n/context";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta", display: "swap" });
@@ -15,13 +16,14 @@ export const viewport: Viewport = {
   themeColor: "#0A0A0A",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={jakarta.variable}>
-      <body className="min-h-screen bg-[var(--bg)] text-[var(--text)] antialiased">{children}</body>
+      <body className="min-h-screen bg-[var(--bg)] text-[var(--text)] antialiased">
+        <I18nProvider>{children}</I18nProvider>
+      </body>
     </html>
   );
 }
