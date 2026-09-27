@@ -174,3 +174,19 @@ input, select, textarea {
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* Share sheet animations */
+@keyframes slideInFromBottom {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes zoomIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.animate-in.slide-in-from-bottom {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+.animate-in.zoom-in-95 {
+  animation: zoomIn 0.2s ease-out;
+}

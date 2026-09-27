@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import Carousel from "@/components/Carousel";
+import ShareSheet from "@/components/ShareSheet";
 import { Heart, Bookmark, MessageSquare, MapPin, Loader2, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -19,6 +20,7 @@ export default function FeedPage() {
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [chatLoading, setChatLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [sharePost, setSharePost] = useState<any>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -49,104 +51,77 @@ export default function FeedPage() {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), 2200);
   };
 
   const toggleLike = async (id: string) => {
-    if (!userId) return showToast("Please login first");
+    if (!userId) { showToast("Login karo"); setTimeout(() => router.push("/login"), 800); return; }
     setLiked((p) => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
     await fetch("/api/like", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: id }) });
   };
 
   const toggleSave = async (id: string) => {
-    if (!userId) return showToast("Please login first");
+    if (!userId) { showToast("Login karo"); setTimeout(() => router.push("/login"), 800); return; }
+    const wasSaved = saved.has(id);
     setSaved((p) => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    showToast(wasSaved ? "Removed from saved" : "Saved!");
     await fetch("/api/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: id }) });
   };
 
   const startChat = async (manufacturerId: string, productId?: string, productTitle?: string) => {
     try {
-      if (!userId) {
-        showToast("Please login to chat");
-        setTimeout(() => router.push("/login"), 1000);
-        return;
-      }
-
-      if (userId === manufacturerId) {
-        showToast("Ye aapka hi product hai");
-        return;
-      }
+      if (!userId) { showToast("Login karo"); setTimeout(() => router.push("/login"), 800); return; }
+      if (userId === manufacturerId) { showToast("Ye aapka hi product hai"); return; }
 
       setChatLoading(manufacturerId);
       const supabase = createClient();
 
-      // Check if conversation already exists
-      const { data: existing, error: fetchErr } = await supabase
-        .from("conversations")
-        .select("id")
+      const { data: existing } = await supabase
+        .from("conversations").select("id")
         .contains("participants", [userId, manufacturerId])
         .maybeSingle();
 
-      if (fetchErr && fetchErr.code !== "PGRST116") {
-        console.error("Fetch conv error:", fetchErr);
-      }
+      if (existing?.id) { router.push(`/chat?c=${existing.id}`); return; }
 
-      if (existing?.id) {
-        router.push(`/chat?c=${existing.id}`);
-        return;
-      }
+      const { data: created, error } = await supabase.from("conversations").insert({
+        participants: [userId, manufacturerId],
+        last_message: productTitle ? `Interested in: ${productTitle}` : "Hi",
+        last_at: new Date().toISOString(),
+      }).select().single();
 
-      // Create new conversation
-      const { data: created, error: createErr } = await supabase
-        .from("conversations")
-        .insert({
-          participants: [userId, manufacturerId],
-          last_message: productTitle ? `Interested in: ${productTitle}` : "Hi, I'm interested",
-          last_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+      if (error || !created?.id) { showToast("Chat start nahi ho payi"); setChatLoading(null); return; }
 
-      if (createErr) {
-        console.error("Create conv error:", createErr);
-        showToast("Chat start nahi ho payi. Try again.");
-        setChatLoading(null);
-        return;
-      }
-
-      if (created?.id) {
-        // Add first message
-        if (productId) {
-          await supabase.from("messages").insert({
-            conversation_id: created.id,
-            sender_id: userId,
-            content: productTitle ? `Hi, I'm interested in "${productTitle}"` : "Hi, I'm interested",
-            kind: "text",
-          });
-        }
-        router.push(`/chat?c=${created.id}`);
-      } else {
-        showToast("Chat start nahi ho payi");
-        setChatLoading(null);
-      }
+      await supabase.from("messages").insert({
+        conversation_id: created.id, sender_id: userId,
+        content: productTitle ? `Hi, I'm interested in "${productTitle}"` : "Hi",
+        kind: "text",
+      });
+      router.push(`/chat?c=${created.id}`);
     } catch (e: any) {
-      console.error("startChat error:", e);
       showToast(e?.message || "Something went wrong");
       setChatLoading(null);
     }
+  };
+
+  const shareProduct = (p: any) => {
+    setSharePost(p);
+  };
+
+  const quickWhatsApp = (p: any) => {
+    const url = `${window.location.origin}/p/${p.id}`;
+    const text = `${p.title} — ₹${p.price} (MOQ ${p.moq})\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin" size={24} /></div>;
   if (posts.length === 0) return (
     <div className="text-center py-20 px-4">
       <div className="text-[15px] font-bold">No products in feed</div>
-      <div className="text-[13px] text-[#6B6B6B] mt-1">Retailers ke liye products yahan dikhenge</div>
     </div>
   );
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 lg:space-y-5">
-      {/* Toast */}
       {toast && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-[#0A0A0A] text-white text-[13px] font-semibold px-5 py-3 rounded-2xl shadow-2xl">
           {toast}
@@ -177,17 +152,18 @@ export default function FeedPage() {
 
           <Carousel media={p.media_urls || []} />
 
+          {/* Actions row */}
           <div className="px-3 lg:px-4 pt-3 pb-2 flex items-center gap-4">
-            <button onClick={() => toggleLike(p.id)}>
+            <button onClick={() => toggleLike(p.id)} aria-label="Like">
               <Heart size={22} className={liked.has(p.id) ? "fill-red-500 text-red-500" : "text-[#0A0A0A]"} />
             </button>
-            <button onClick={() => startChat(p.manufacturer_id, p.id, p.title)}>
+            <button onClick={() => startChat(p.manufacturer_id, p.id, p.title)} aria-label="Chat">
               <MessageSquare size={22} />
             </button>
-            <button>
+            <button onClick={() => shareProduct(p)} aria-label="Share">
               <Share2 size={22} />
             </button>
-            <button onClick={() => toggleSave(p.id)} className="ml-auto">
+            <button onClick={() => toggleSave(p.id)} className="ml-auto" aria-label="Save">
               <Bookmark size={22} className={saved.has(p.id) ? "fill-[#0A0A0A]" : ""} />
             </button>
           </div>
@@ -216,6 +192,9 @@ export default function FeedPage() {
                   <><MessageSquare size={13} /> Inquire</>
                 )}
               </Button>
+              <Button size="sm" variant="secondary" onClick={() => quickWhatsApp(p)}>
+                <MessageSquare size={13} className="text-green-600" /> WhatsApp
+              </Button>
               <Link href={`/p/${p.id}`}>
                 <Button size="sm" variant="secondary">Details</Button>
               </Link>
@@ -223,6 +202,18 @@ export default function FeedPage() {
           </CardBody>
         </Card>
       ))}
+
+      {/* Share sheet */}
+      {sharePost && (
+        <ShareSheet
+          open={!!sharePost}
+          onClose={() => setSharePost(null)}
+          title={sharePost.title}
+          description={`₹${sharePost.price} · MOQ ${sharePost.moq}`}
+          url={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${sharePost.id}`}
+          image={sharePost.media_urls?.[0]}
+        />
+      )}
     </div>
   );
 }

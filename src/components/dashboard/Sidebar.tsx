@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard, Package, MessageSquare, FileText, Search, ShieldCheck, Settings, LogOut,
   Users, BarChart3, Rocket, Sparkles, Home, Bell, X, HelpCircle, Flag, Megaphone, ShoppingBag,
-  Gift, Trophy, AlertTriangle, CheckCircle2
+  Gift, Trophy, AlertTriangle, CheckCircle2, Bookmark
 } from "lucide-react";
 
 const nav = [
@@ -16,6 +16,7 @@ const nav = [
   { href: "/search", label: "Discover", icon: Search },
   { href: "/products/new", label: "Post Product", icon: Sparkles },
   { href: "/products", label: "My Products", icon: Package },
+  { href: "/saved", label: "Saved", icon: Bookmark },
   { href: "/orders", label: "Orders", icon: ShoppingBag },
   { href: "/sample-requests", label: "Samples", icon: CheckCircle2 },
   { href: "/rfq", label: "RFQs", icon: FileText },
@@ -62,9 +63,8 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         "fixed lg:sticky top-0 left-0 z-50 h-screen w-[260px] lg:w-[240px] shrink-0 border-r bg-white flex flex-col transition-transform duration-300",
         open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        {/* LOGO — goes to /feed (dashboard home) */}
         <div className="px-5 py-5 border-b flex items-center justify-between">
-          <Link href="/feed" className="flex items-center gap-2.5 hover:opacity-80 transition" onClick={onClose}>
+          <Link href="/feed" className="flex items-center gap-2.5" onClick={onClose}>
             <div className="w-8 h-8 rounded-lg bg-[#0A0A0A] flex items-center justify-center">
               <span className="text-white text-sm font-bold">R</span>
             </div>
@@ -78,17 +78,10 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         <nav className="flex-1 p-3 overflow-y-auto">
           <div className="text-[10px] font-bold uppercase text-[#9B9B9B] px-3 mb-2">Workspace</div>
           {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-1 transition",
-                path === item.href ? "bg-[#0A0A0A] text-white" : "text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]"
-              )}
-            >
-              <item.icon size={16} />
-              <span>{item.label}</span>
+            <Link key={item.href} href={item.href} onClick={onClose}
+              className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-1 transition",
+                path === item.href ? "bg-[#0A0A0A] text-white" : "text-[#6B6B6B] hover:bg-[#FAFAF9]")}>
+              <item.icon size={16} /><span>{item.label}</span>
             </Link>
           ))}
 

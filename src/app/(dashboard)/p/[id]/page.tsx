@@ -5,7 +5,8 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
-import { ArrowLeft, MessageSquare, Loader2, MapPin, Phone, Lock, Send } from "lucide-react";
+import ShareSheet from "@/components/ShareSheet";
+import { ArrowLeft, MessageSquare, Loader2, MapPin, Phone, Lock, Send, Share2, Bookmark, Heart, Link2, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -20,10 +21,14 @@ export default function ProductDetail() {
   const [chatLoading, setChatLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), 2200);
   };
 
   useEffect(() => {
@@ -34,18 +39,58 @@ export default function ProductDetail() {
 
       const { data } = await supabase.from("products").select("*").eq("id", id).single();
       setProduct(data);
+
       if (data?.manufacturer_id) {
         const { data: prof } = await supabase.from("profiles").select("*").eq("id", data.manufacturer_id).single();
         setManufacturer(prof);
       }
+
+      if (user) {
+        const [likeData, saveData] = await Promise.all([
+          supabase.from("likes").select("id").eq("user_id", user.id).eq("product_id", id).maybeSingle(),
+          supabase.from("saves").select("id").eq("user_id", user.id).eq("product_id", id).maybeSingle(),
+        ]);
+        setLiked(!!likeData.data);
+        setSaved(!!saveData.data);
+      }
+
       setLoading(false);
-      // Track view
       if (data?.id) fetch("/api/products/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: data.id }) });
     })();
   }, [id]);
 
+  const toggleLike = async () => {
+    if (!userId) { showToast("Login karo"); return; }
+    setLiked(!liked);
+    await fetch("/api/like", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: id }) });
+  };
+
+  const toggleSave = async () => {
+    if (!userId) { showToast("Login karo"); return; }
+    setSaved(!saved);
+    showToast(saved ? "Removed from saved" : "Saved!");
+    await fetch("/api/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: id }) });
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setLinkCopied(true);
+      showToast("Link copied!");
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      showToast("Copy failed");
+    }
+  };
+
+  const shareWhatsApp = () => {
+    const url = window.location.href;
+    const text = `${product.title} — ₹${product.price} (MOQ ${product.moq})\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
   const revealNumber = async () => {
-    if (!userId) { showToast("Please login"); setTimeout(() => router.push("/login"), 1000); return; }
+    if (!userId) { showToast("Login karo"); setTimeout(() => router.push("/login"), 800); return; }
     setRevealing(true);
     try {
       const res = await fetch("/api/contact/reveal", {
@@ -61,15 +106,13 @@ export default function ProductDetail() {
       } else {
         showToast(data.error || "Unable to reveal");
       }
-    } catch (e: any) {
-      showToast("Error revealing number");
-    }
+    } catch { showToast("Error"); }
     setRevealing(false);
   };
 
   const startChat = async () => {
     try {
-      if (!userId) { showToast("Please login"); setTimeout(() => router.push("/login"), 1000); return; }
+      if (!userId) { showToast("Login karo"); setTimeout(() => router.push("/login"), 800); return; }
       if (userId === product.manufacturer_id) { showToast("Ye aapka hi product hai"); return; }
 
       setChatLoading(true);
@@ -80,10 +123,7 @@ export default function ProductDetail() {
         .contains("participants", [userId, product.manufacturer_id])
         .maybeSingle();
 
-      if (existing?.id) {
-        router.push(`/chat?c=${existing.id}`);
-        return;
-      }
+      if (existing?.id) { router.push(`/chat?c=${existing.id}`); return; }
 
       const { data: created, error } = await supabase.from("conversations").insert({
         participants: [userId, product.manufacturer_id],
@@ -91,22 +131,13 @@ export default function ProductDetail() {
         last_at: new Date().toISOString(),
       }).select().single();
 
-      if (error) {
-        console.error(error);
-        showToast("Chat start nahi ho payi");
-        setChatLoading(false);
-        return;
-      }
+      if (error || !created?.id) { showToast("Chat start nahi ho payi"); setChatLoading(false); return; }
 
-      if (created?.id) {
-        await supabase.from("messages").insert({
-          conversation_id: created.id,
-          sender_id: userId,
-          content: `Hi, I'm interested in "${product.title}"`,
-          kind: "text",
-        });
-        router.push(`/chat?c=${created.id}`);
-      }
+      await supabase.from("messages").insert({
+        conversation_id: created.id, sender_id: userId,
+        content: `Hi, I'm interested in "${product.title}"`, kind: "text",
+      });
+      router.push(`/chat?c=${created.id}`);
     } catch (e: any) {
       showToast(e?.message || "Something went wrong");
       setChatLoading(false);
@@ -165,15 +196,50 @@ export default function ProductDetail() {
               <Badge variant="gold">{product.category || "General"}</Badge>
               <h1 className="text-[1.5rem] font-extrabold mt-3">{product.title}</h1>
               {product.description && <p className="text-[13px] text-[#6B6B6B] mt-2">{product.description}</p>}
+
               <div className="mt-5 flex items-baseline justify-between">
                 <div className="text-[2rem] font-extrabold">₹{product.price}</div>
                 <div className="text-[13px] text-[#6B6B6B]">MOQ {product.moq} pcs</div>
               </div>
+
               <div className="mt-4 flex flex-wrap gap-1.5">
                 {product.fabric && <Badge>Fabric: {product.fabric}</Badge>}
                 {product.color && <Badge>Color: {product.color}</Badge>}
+                {product.gender && <Badge>{product.gender}</Badge>}
               </div>
 
+              {/* SHARE + SAVE ROW */}
+              <div className="mt-5 flex items-center gap-2">
+                <button onClick={toggleLike} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#E7E5E4] hover:bg-[#FAFAF9] transition">
+                  <Heart size={16} className={liked ? "fill-red-500 text-red-500" : ""} />
+                  <span className="text-[13px] font-semibold">{liked ? "Liked" : "Like"}</span>
+                </button>
+                <button onClick={toggleSave} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#E7E5E4] hover:bg-[#FAFAF9] transition">
+                  <Bookmark size={16} className={saved ? "fill-[#0A0A0A]" : ""} />
+                  <span className="text-[13px] font-semibold">{saved ? "Saved" : "Save"}</span>
+                </button>
+                <button onClick={copyLink} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#E7E5E4] hover:bg-[#FAFAF9] transition">
+                  {linkCopied ? <Check size={16} className="text-emerald-600" /> : <Link2 size={16} />}
+                  <span className="text-[13px] font-semibold">{linkCopied ? "Copied" : "Copy"}</span>
+                </button>
+              </div>
+
+              {/* WHATSAPP SHARE */}
+              <button
+                onClick={shareWhatsApp}
+                className="mt-2 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 text-white font-semibold text-[13px] hover:bg-green-600 transition"
+              >
+                <MessageSquare size={15} /> Share on WhatsApp
+              </button>
+
+              <button
+                onClick={() => setShowShare(true)}
+                className="mt-2 w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[#E7E5E4] hover:bg-[#FAFAF9] transition font-semibold text-[13px]"
+              >
+                <Share2 size={14} /> More options
+              </button>
+
+              {/* CHAT + CALL */}
               <div className="mt-5 space-y-2">
                 <Button onClick={startChat} disabled={chatLoading} className="w-full">
                   {chatLoading ? (
@@ -207,6 +273,16 @@ export default function ProductDetail() {
           </Card>
         </div>
       </div>
+
+      {/* Share sheet */}
+      <ShareSheet
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        title={product.title}
+        description={`₹${product.price} · MOQ ${product.moq}`}
+        url={typeof window !== "undefined" ? window.location.href : ""}
+        image={product.media_urls?.[0]}
+      />
     </div>
   );
 }
