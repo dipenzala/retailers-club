@@ -33,7 +33,6 @@ export default function Register() {
     }
 
     if (data.user) {
-      // Update profile with business info
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
