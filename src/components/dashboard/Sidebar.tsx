@@ -4,94 +4,70 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import {
   LayoutDashboard, Package, MessageSquare, FileText, Search,
-  ShieldCheck, Settings, LogOut, Users, BarChart3, Sparkles, Home, X
+  ShieldCheck, Settings, LogOut, Users, BarChart3, Rocket, Sparkles, Home, Bell, CreditCard, X
 } from "lucide-react";
 
 const nav = [
   { href: "/feed", label: "Feed", icon: Home },
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/products", label: "My Products", icon: Package },
+  { href: "/search", label: "Discover", icon: Search },
   { href: "/products/new", label: "Post Product", icon: Sparkles },
+  { href: "/products/upload", label: "AI Upload", icon: Sparkles },
+  { href: "/products", label: "My Products", icon: Package },
   { href: "/rfq", label: "RFQs", icon: FileText },
   { href: "/chat", label: "Messages", icon: MessageSquare },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/verification", label: "Verification", icon: ShieldCheck },
+  { href: "/boost", label: "Boost", icon: Rocket },
+  { href: "/subscription", label: "Subscription", icon: CreditCard },
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
 ];
 
 const adminNav = [
+  { href: "/admin/verification", label: "Verify Queue", icon: ShieldCheck },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const path = usePathname();
-
   return (
     <>
-      {/* Mobile overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed lg:sticky top-0 left-0 z-50 h-screen w-[260px] lg:w-[240px] shrink-0 border-r border-[#E7E5E4] bg-white flex flex-col transition-transform duration-300",
-          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        )}
-      >
+      {open && <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={onClose} />}
+      <aside className={cn(
+        "fixed lg:sticky top-0 left-0 z-50 h-screen w-[260px] lg:w-[240px] shrink-0 border-r border-[#E7E5E4] bg-white flex flex-col transition-transform duration-300",
+        open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}>
         <div className="px-5 py-5 border-b border-[#E7E5E4] flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5" onClick={onClose}>
             <div className="w-8 h-8 rounded-lg bg-[#0A0A0A] flex items-center justify-center">
               <span className="text-white text-sm font-bold">R</span>
             </div>
-            <span className="font-bold text-[#0A0A0A] text-[14px]">Retailers Club</span>
+            <span className="font-bold text-[14px]">Retailers Club</span>
           </Link>
-          <button
-            onClick={onClose}
-            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#FAFAF9]"
-          >
+          <button onClick={onClose} className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#FAFAF9]">
             <X size={16} />
           </button>
         </div>
 
         <nav className="flex-1 p-3 overflow-y-auto">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#9B9B9B] px-3 mb-2">
-            Workspace
-          </div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#9B9B9B] px-3 mb-2">Workspace</div>
           {nav.map((item) => {
             const active = path === item.href;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-1 transition",
-                  active ? "bg-[#0A0A0A] text-white" : "text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]"
-                )}
-              >
+              <Link key={item.href} href={item.href} onClick={onClose}
+                className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-1 transition",
+                  active ? "bg-[#0A0A0A] text-white" : "text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]")}>
                 <item.icon size={16} strokeWidth={2} />
                 <span className="flex-1">{item.label}</span>
               </Link>
             );
           })}
 
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#9B9B9B] px-3 mb-2 mt-6">
-            Admin
-          </div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#9B9B9B] px-3 mb-2 mt-6">Admin</div>
           {adminNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-1 transition",
-                path === item.href ? "bg-[#0A0A0A] text-white" : "text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]"
-              )}
-            >
+            <Link key={item.href} href={item.href} onClick={onClose}
+              className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium mb-1 transition",
+                path === item.href ? "bg-[#0A0A0A] text-white" : "text-[#6B6B6B] hover:bg-[#FAFAF9] hover:text-[#0A0A0A]")}>
               <item.icon size={16} strokeWidth={2} />
               {item.label}
             </Link>
@@ -99,17 +75,10 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         </nav>
 
         <div className="p-3 border-t border-[#E7E5E4]">
-          <Link
-            href="/settings"
-            onClick={onClose}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B6B6B] hover:bg-[#FAFAF9]"
-          >
+          <Link href="/settings" onClick={onClose} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B6B6B] hover:bg-[#FAFAF9]">
             <Settings size={16} /> Settings
           </Link>
-          <Link
-            href="/login"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B6B6B] hover:bg-[#FAFAF9]"
-          >
+          <Link href="/login" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B6B6B] hover:bg-[#FAFAF9]">
             <LogOut size={16} /> Logout
           </Link>
         </div>

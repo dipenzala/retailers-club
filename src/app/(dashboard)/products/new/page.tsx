@@ -4,15 +4,29 @@ import { useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Image as ImageIcon, X, Loader2 } from "lucide-react";
 
 export default function NewProduct() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [form, setForm] = useState({
     title: "", description: "", category: "", fabric: "",
     color: "", gender: "", price: "", moq: "", visibility: "verified_retailers",
   });
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
+
+  const uploadImage = async (file: File) => {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    if (data.url) setImages((prev) => [...prev, data.url]);
+    else setError(data.error || "Upload failed");
+    setUploading(false);
+  };
 
   const submit = async () => {
     if (!form.title) return setError("Title required");
@@ -25,23 +39,51 @@ export default function NewProduct() {
         ...form,
         price: Number(form.price) || 0,
         moq: Number(form.moq) || 0,
+        media_urls: images,
       }),
     });
     setLoading(false);
-    if (res.ok) router.push("/products");
-    else {
-      const d = await res.json();
-      setError(d.error || "Failed");
-    }
+    if (res.ok) router.push("/feed");
+    else { const d = await res.json(); setError(d.error || "Failed"); }
   };
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-2xl mx-auto space-y-5">
       <Card>
-        <CardHeader>
-          <div className="text-[15px] font-bold text-[#0A0A0A]">New Product</div>
-        </CardHeader>
+        <CardHeader><div className="text-[15px] font-bold">New Product</div></CardHeader>
         <CardBody className="space-y-4">
+          {/* Images */}
+          <div>
+            <label className="text-[12px] font-semibold mb-2 block">Images</label>
+            <div className="grid grid-cols-3 gap-2">
+              {images.map((url, i) => (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-[#E7E5E4]">
+                  <img src={url} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setImages(images.filter((_, j) => j !== i))}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              <label className="aspect-square rounded-xl border-2 border-dashed border-[#E7E5E4] flex flex-col items-center justify-center cursor-pointer hover:border-[#0A0A0A] transition">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); }}
+                />
+                {uploading ? <Loader2 className="animate-spin" size={20} /> : (
+                  <>
+                    <ImageIcon size={20} className="text-[#6B6B6B]" />
+                    <span className="text-[10px] text-[#6B6B6B] mt-1">Add</span>
+                  </>
+                )}
+              </label>
+            </div>
+          </div>
+
           <Input placeholder="Title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <textarea
             placeholder="Description"
@@ -54,26 +96,14 @@ export default function NewProduct() {
             <Input placeholder="Fabric" value={form.fabric} onChange={(e) => setForm({ ...form, fabric: e.target.value })} />
             <Input placeholder="Color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
             <Input placeholder="Gender" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} />
-            <Input placeholder="Price (₹)" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+            <Input placeholder="Price ₹" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
             <Input placeholder="MOQ" type="number" value={form.moq} onChange={(e) => setForm({ ...form, moq: e.target.value })} />
           </div>
-          <select
-            value={form.visibility}
-            onChange={(e) => setForm({ ...form, visibility: e.target.value })}
-            className="w-full bg-[#FAFAF9] border border-[#E7E5E4] rounded-xl px-4 py-3 outline-none text-[14px]"
-          >
-            <option value="public">Public</option>
-            <option value="retailers_only">Retailers Only</option>
-            <option value="verified_retailers">Verified Retailers</option>
-            <option value="private">Private</option>
-          </select>
-          {error && (
-            <div className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
-          )}
+          {error && <div className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => router.back()}>Cancel</Button>
             <Button onClick={submit} disabled={loading || !form.title}>
-              {loading ? "Creating..." : "Create Product"}
+              {loading ? "Creating..." : "Publish"}
             </Button>
           </div>
         </CardBody>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseSearchQuery, embed } from "@/lib/ai/openai";
+import { parseSearchQuery } from "@/lib/ai/openai";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
@@ -7,18 +7,23 @@ export async function POST(req: Request) {
     const { query } = await req.json();
     if (!query) return NextResponse.json({ error: "query required" }, { status: 400 });
 
-    const parsed = await parseSearchQuery(query);
-    const vector = await embed(query);
+    let parsed: any = {};
+    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "sk-placeholder") {
+      parsed = await parseSearchQuery(query);
+    } else {
+      // Basic fallback
+      parsed = { keywords: query.split(" ") };
+    }
 
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc("search_products_semantic", {
-      query_embedding: vector as any,
-      match_threshold: 0.5,
-      match_count: 20,
-    });
+    let q = supabase.from("products").select("*").limit(30);
+    if (parsed.category) q = q.ilike("category", `%${parsed.category}%`);
+    if (parsed.priceMax) q = q.lte("price", parsed.priceMax);
+    if (parsed.fabric) q = q.ilike("fabric", `%${parsed.fabric}%`);
+    if (parsed.color) q = q.ilike("color", `%${parsed.color}%`);
 
-    if (error) return NextResponse.json({ parsed, results: [], note: "RPC not set up yet" });
-    return NextResponse.json({ parsed, results: data });
+    const { data } = await q.order("created_at", { ascending: false });
+    return NextResponse.json({ parsed, results: data || [] });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
