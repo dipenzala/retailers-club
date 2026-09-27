@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -8,7 +7,6 @@ export async function GET() {
   const { data } = await supabase.from("saved_searches").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
   return NextResponse.json({ searches: data || [] });
 }
-
 export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -17,7 +15,6 @@ export async function POST(req: Request) {
   const { data } = await supabase.from("saved_searches").insert({ user_id: user.id, query, filters }).select().single();
   return NextResponse.json({ search: data });
 }
-
 export async function DELETE(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
