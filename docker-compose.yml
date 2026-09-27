@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - NEXT_PUBLIC_SOCKET_URL=http://socket:3001
+    depends_on: [socket]
+
+  socket:
+    image: node:20-alpine
+    working_dir: /app
+    volumes: ["./socket-server:/app"]
+    command: sh -c "npm init -y && npm install socket.io && node index.js"
+    ports: ["3001:3001"]
