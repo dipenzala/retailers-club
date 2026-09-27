@@ -26,6 +26,7 @@ const adminNav = [
   { href: "/admin/verification", label: "Verify Queue", icon: ShieldCheck },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/audit", label: "Audit Logs", icon: FileText },
 ];
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Search, MapPin, Loader2, Sparkles, Navigation } from "lucide-react";
+import { Search, MapPin, Loader2, Sparkles, Navigation, Bookmark, X } from "lucide-react";
 
 export default function SearchPage() {
   const [q, setQ] = useState("");
@@ -13,6 +13,13 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [parsed, setParsed] = useState<any>(null);
+  const [saved, setSaved] = useState<any[]>([]);
+
+  const loadSaved = async () => {
+    const res = await fetch("/api/saved-searches");
+    const d = await res.json();
+    setSaved(d.searches || []);
+  };
 
   const aiSearch = async () => {
     if (!q.trim()) return;
@@ -26,6 +33,25 @@ export default function SearchPage() {
     setResults(data.results || []);
     setParsed(data.parsed);
     setLoading(false);
+  };
+
+  const saveSearch = async () => {
+    if (!q.trim()) return;
+    await fetch("/api/saved-searches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: q, filters: parsed || {} }),
+    });
+    loadSaved();
+  };
+
+  const removeSaved = async (id: string) => {
+    await fetch("/api/saved-searches", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    loadSaved();
   };
 
   const findNearby = () => {
@@ -42,7 +68,7 @@ export default function SearchPage() {
     );
   };
 
-  useEffect(() => { aiSearch(); }, []);
+  useEffect(() => { loadSaved(); }, []);
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
@@ -61,9 +87,12 @@ export default function SearchPage() {
               {loading ? <Loader2 className="animate-spin" size={14} /> : "Search"}
             </Button>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="secondary" onClick={findNearby} disabled={locationLoading}>
-              <Navigation size={13} /> {locationLoading ? "Finding..." : "Nearby Manufacturers"}
+              <Navigation size={13} /> {locationLoading ? "Finding..." : "Nearby"}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={saveSearch} disabled={!q.trim()}>
+              <Bookmark size={13} /> Save Search
             </Button>
           </div>
 
@@ -79,10 +108,28 @@ export default function SearchPage() {
         </CardBody>
       </Card>
 
+      {saved.length > 0 && (
+        <div>
+          <div className="text-[13px] font-bold mb-2">Saved Searches</div>
+          <div className="flex flex-wrap gap-2">
+            {saved.map((s) => (
+              <div key={s.id} className="flex items-center gap-2 bg-white border border-[#E7E5E4] rounded-full pl-3 pr-1.5 py-1.5">
+                <button onClick={() => { setQ(s.query); aiSearch(); }} className="text-[12px] font-medium">
+                  {s.query.slice(0, 30)}{s.query.length > 30 ? "..." : ""}
+                </button>
+                <button onClick={() => removeSaved(s.id)} className="w-5 h-5 rounded-full hover:bg-[#FAFAF9] flex items-center justify-center">
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {nearby.length > 0 && (
         <div>
           <div className="text-[13px] font-bold mb-3 flex items-center gap-2">
-            <MapPin size={14} /> Nearby Manufacturers ({nearby.length})
+            <MapPin size={14} /> Nearby Manufacturers
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {nearby.map((m) => (
@@ -90,7 +137,7 @@ export default function SearchPage() {
                 <Card className="hover:shadow-md transition cursor-pointer">
                   <CardBody className="!p-4">
                     <div className="text-[13px] font-bold">{m.business_name}</div>
-                    <div className="text-[11px] text-[#6B6B6B] mt-1">{m.city} • {m.distance_km?.toFixed(1)} km</div>
+                    <div className="text-[11px] text-[#6B6B6B] mt-1">{m.city}</div>
                   </CardBody>
                 </Card>
               </Link>

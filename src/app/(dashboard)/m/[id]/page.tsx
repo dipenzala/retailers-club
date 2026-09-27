@@ -5,7 +5,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Loader2, MapPin, MessageSquare, ShieldCheck, Package } from "lucide-react";
+import { Loader2, MapPin, MessageSquare, ShieldCheck, Package, MoreVertical, Ban, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -18,24 +18,22 @@ export default function ManufacturerProfile() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isOwn, setIsOwn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setIsOwn(user?.id === id);
-
       const [prof, prods, stats] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", id).single(),
         supabase.from("products").select("*").eq("manufacturer_id", id).order("created_at", { ascending: false }),
         fetch(`/api/follow?user=${id}`).then((r) => r.json()),
       ]);
-
       setProfile(prof.data);
       setProducts(prods.data || []);
       setFollowers(stats.followers || 0);
       setFollowing(stats.following || 0);
-
       if (user) {
         const { data: f } = await supabase.from("follows").select("id")
           .eq("follower_id", user.id).eq("following_id", id).maybeSingle();
@@ -47,8 +45,7 @@ export default function ManufacturerProfile() {
 
   const toggleFollow = async () => {
     const res = await fetch("/api/follow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ following_id: id }),
     });
     const data = await res.json();
@@ -67,6 +64,27 @@ export default function ManufacturerProfile() {
     if (data) window.location.href = `/chat?c=${data.id}`;
   };
 
+  const blockUser = async () => {
+    if (!confirm("Block this user?")) return;
+    await fetch("/api/block", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ blocked_id: id }),
+    });
+    alert("User blocked");
+    setShowMenu(false);
+  };
+
+  const reportUser = async () => {
+    const reason = prompt("Reason for report?");
+    if (!reason) return;
+    await fetch("/api/report", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reported_id: id, reason }),
+    });
+    alert("Report submitted");
+    setShowMenu(false);
+  };
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin" size={24} /></div>;
   if (!profile) return <div className="text-center py-20">Manufacturer not found</div>;
 
@@ -77,9 +95,28 @@ export default function ManufacturerProfile() {
           <div className="flex flex-col md:flex-row items-start gap-6">
             <Avatar name={profile.business_name || "M"} size={96} />
             <div className="flex-1 w-full">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-[1.35rem] lg:text-[1.5rem] font-extrabold">{profile.business_name || "Manufacturer"}</h1>
-                {profile.is_verified && <Badge variant="success"><ShieldCheck size={11} /> Verified</Badge>}
+              <div className="flex items-center gap-2 flex-wrap justify-between">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-[1.35rem] lg:text-[1.5rem] font-extrabold">{profile.business_name || "Manufacturer"}</h1>
+                  {profile.is_verified && <Badge variant="success"><ShieldCheck size={11} /> Verified</Badge>}
+                </div>
+                {!isOwn && (
+                  <div className="relative">
+                    <button onClick={() => setShowMenu(!showMenu)} className="w-9 h-9 rounded-lg border border-[#E7E5E4] flex items-center justify-center">
+                      <MoreVertical size={16} />
+                    </button>
+                    {showMenu && (
+                      <div className="absolute right-0 top-11 bg-white border border-[#E7E5E4] rounded-xl shadow-lg z-10 w-40 overflow-hidden">
+                        <button onClick={blockUser} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[#FAFAF9] flex items-center gap-2">
+                          <Ban size={13} /> Block
+                        </button>
+                        <button onClick={reportUser} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[#FAFAF9] flex items-center gap-2 text-red-600">
+                          <Flag size={13} /> Report
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {profile.city && <div className="flex items-center gap-1 text-[13px] text-[#6B6B6B] mt-1"><MapPin size={12} /> {profile.city}</div>}
               <div className="flex gap-6 mt-4">
