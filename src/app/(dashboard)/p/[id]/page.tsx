@@ -5,7 +5,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
-import { ArrowLeft, MessageSquare, Loader2, MapPin, Phone } from "lucide-react";
+import { ArrowLeft, MessageSquare, Loader2, MapPin, Phone, Lock, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -17,10 +17,21 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [phone, setPhone] = useState<string | null>(null);
   const [revealing, setRevealing] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   useEffect(() => {
     const supabase = createClient();
     (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+
       const { data } = await supabase.from("products").select("*").eq("id", id).single();
       setProduct(data);
       if (data?.manufacturer_id) {
@@ -28,30 +39,78 @@ export default function ProductDetail() {
         setManufacturer(prof);
       }
       setLoading(false);
+      // Track view
+      if (data?.id) fetch("/api/products/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: data.id }) });
     })();
   }, [id]);
 
   const revealNumber = async () => {
+    if (!userId) { showToast("Please login"); setTimeout(() => router.push("/login"), 1000); return; }
     setRevealing(true);
-    const res = await fetch("/api/contact/reveal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ owner_id: product.manufacturer_id }),
-    });
-    const data = await res.json();
-    if (data.phone) setPhone(data.phone);
-    else alert(data.error || "Unable to reveal");
+    try {
+      const res = await fetch("/api/contact/reveal", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ owner_id: product.manufacturer_id }),
+      });
+      const data = await res.json();
+      if (data.phone) {
+        setPhone(data.phone);
+        showToast("Number revealed. Owner notified.");
+      } else if (data.pending) {
+        showToast("Number request bhej di. Approval ka wait karo.");
+      } else {
+        showToast(data.error || "Unable to reveal");
+      }
+    } catch (e: any) {
+      showToast("Error revealing number");
+    }
     setRevealing(false);
   };
 
   const startChat = async () => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return router.push("/login");
-    const { data: existing } = await supabase.from("conversations").select("id").contains("participants", [user.id, product.manufacturer_id]).maybeSingle();
-    if (existing) return router.push(`/chat?c=${existing.id}`);
-    const { data } = await supabase.from("conversations").insert({ participants: [user.id, product.manufacturer_id] }).select().single();
-    if (data) router.push(`/chat?c=${data.id}`);
+    try {
+      if (!userId) { showToast("Please login"); setTimeout(() => router.push("/login"), 1000); return; }
+      if (userId === product.manufacturer_id) { showToast("Ye aapka hi product hai"); return; }
+
+      setChatLoading(true);
+      const supabase = createClient();
+
+      const { data: existing } = await supabase
+        .from("conversations").select("id")
+        .contains("participants", [userId, product.manufacturer_id])
+        .maybeSingle();
+
+      if (existing?.id) {
+        router.push(`/chat?c=${existing.id}`);
+        return;
+      }
+
+      const { data: created, error } = await supabase.from("conversations").insert({
+        participants: [userId, product.manufacturer_id],
+        last_message: `Interested in: ${product.title}`,
+        last_at: new Date().toISOString(),
+      }).select().single();
+
+      if (error) {
+        console.error(error);
+        showToast("Chat start nahi ho payi");
+        setChatLoading(false);
+        return;
+      }
+
+      if (created?.id) {
+        await supabase.from("messages").insert({
+          conversation_id: created.id,
+          sender_id: userId,
+          content: `Hi, I'm interested in "${product.title}"`,
+          kind: "text",
+        });
+        router.push(`/chat?c=${created.id}`);
+      }
+    } catch (e: any) {
+      showToast(e?.message || "Something went wrong");
+      setChatLoading(false);
+    }
   };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin" size={24} /></div>;
@@ -59,6 +118,12 @@ export default function ProductDetail() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
+      {toast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-[#0A0A0A] text-white text-[13px] font-semibold px-5 py-3 rounded-2xl shadow-2xl">
+          {toast}
+        </div>
+      )}
+
       <button onClick={() => router.back()} className="flex items-center gap-1.5 text-[13px] text-[#6B6B6B]">
         <ArrowLeft size={14} /> Back
       </button>
@@ -77,10 +142,19 @@ export default function ProductDetail() {
                 <CardBody className="flex items-center gap-3">
                   <Avatar name={manufacturer.business_name} size={44} />
                   <div className="flex-1">
-                    <div className="text-[14px] font-bold">{manufacturer.business_name}</div>
-                    {manufacturer.city && <div className="text-[11px] text-[#6B6B6B] flex items-center gap-1"><MapPin size={10} /> {manufacturer.city}</div>}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[14px] font-bold">{manufacturer.business_name}</span>
+                      {manufacturer.is_verified && (
+                        <span className="w-3.5 h-3.5 rounded-full bg-[#B8894A] text-white text-[8px] flex items-center justify-center font-bold">✓</span>
+                      )}
+                    </div>
+                    {manufacturer.city && (
+                      <div className="text-[11px] text-[#6B6B6B] flex items-center gap-1">
+                        <MapPin size={10} /> {manufacturer.city}
+                      </div>
+                    )}
                   </div>
-                  {manufacturer.is_verified && <Badge variant="success">Verified</Badge>}
+                  <Badge variant="gold">View</Badge>
                 </CardBody>
               </Card>
             </Link>
@@ -101,9 +175,14 @@ export default function ProductDetail() {
               </div>
 
               <div className="mt-5 space-y-2">
-                <Button onClick={startChat} className="w-full">
-                  <MessageSquare size={15} /> Chat with Manufacturer
+                <Button onClick={startChat} disabled={chatLoading} className="w-full">
+                  {chatLoading ? (
+                    <><Loader2 size={15} className="animate-spin" /> Opening chat...</>
+                  ) : (
+                    <><MessageSquare size={15} /> Chat with Manufacturer</>
+                  )}
                 </Button>
+
                 {phone ? (
                   <a href={`tel:${phone}`} className="block">
                     <Button variant="secondary" className="w-full">
@@ -112,7 +191,15 @@ export default function ProductDetail() {
                   </a>
                 ) : (
                   <Button variant="secondary" className="w-full" onClick={revealNumber} disabled={revealing}>
-                    <Phone size={15} /> {revealing ? "Revealing..." : "View Mobile Number"}
+                    {revealing ? (
+                      <><Loader2 size={15} className="animate-spin" /> Revealing...</>
+                    ) : manufacturer?.number_privacy === "hidden" ? (
+                      <><Lock size={15} /> Number Hidden</>
+                    ) : manufacturer?.number_privacy === "on_request" ? (
+                      <><Send size={15} /> Request Number</>
+                    ) : (
+                      <><Phone size={15} /> View Mobile Number</>
+                    )}
                   </Button>
                 )}
               </div>
